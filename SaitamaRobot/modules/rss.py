@@ -10,8 +10,6 @@ from telegram.ext import CallbackContext, CommandHandler
 
 
 def show_url(update: Update, context: CallbackContext):
-    tg_chat_id = str(update.effective_chat.id)
-    bot = context.bot
     args = context.args
     if len(args) >= 1:
         tg_feed_link = args[0]
@@ -28,14 +26,10 @@ def show_url(update: Update, context: CallbackContext):
             )
             feed_link = link_processed.feed.get("link", default="Unknown")
 
-            feed_message = (
-                "<b>Feed Title:</b> \n{}"
-                "\n\n<b>Feed Description:</b> \n{}"
-                "\n\n<b>Feed Link:</b> \n{}".format(
-                    html.escape(feed_title), feed_description, html.escape(feed_link)
-                )
-            )
+            feed_message = f"<b>Feed Title:</b> \n{html.escape(feed_title)}\n\n<b>Feed Description:</b> \n{feed_description}\n\n<b>Feed Link:</b> \n{html.escape(feed_link)}"
 
+            tg_chat_id = str(update.effective_chat.id)
+            bot = context.bot
             if len(link_processed.entries) >= 1:
                 entry_title = link_processed.entries[0].get("title", default="Unknown")
                 entry_description = "<i>{}</i>".format(
@@ -47,15 +41,7 @@ def show_url(update: Update, context: CallbackContext):
                 )
                 entry_link = link_processed.entries[0].get("link", default="Unknown")
 
-                entry_message = (
-                    "\n\n<b>Entry Title:</b> \n{}"
-                    "\n\n<b>Entry Description:</b> \n{}"
-                    "\n\n<b>Entry Link:</b> \n{}".format(
-                        html.escape(entry_title),
-                        entry_description,
-                        html.escape(entry_link),
-                    )
-                )
+                entry_message = f"\n\n<b>Entry Title:</b> \n{html.escape(entry_title)}\n\n<b>Entry Description:</b> \n{entry_description}\n\n<b>Entry Link:</b> \n{html.escape(entry_link)}"
                 final_message = feed_message + entry_message
 
                 bot.send_message(
@@ -82,7 +68,7 @@ def list_urls(update: Update, context: CallbackContext):
     final_content = "\n\n".join(links_list)
 
     # check if the length of the message is too long to be posted in 1 chat bubble
-    if len(final_content) == 0:
+    if not final_content:
         bot.send_message(
             chat_id=tg_chat_id, text="This chat is not subscribed to any links"
         )
@@ -118,11 +104,7 @@ def add_url(update: Update, context: CallbackContext):
             else:
                 tg_old_entry_link = ""
 
-            # gather the row which contains exactly that telegram group ID and link for later comparison
-            row = sql.check_url_availability(tg_chat_id, tg_feed_link)
-
-            # check if there's an entry already added to DB by the same user in the same group with the same link
-            if row:
+            if row := sql.check_url_availability(tg_chat_id, tg_feed_link):
                 update.effective_message.reply_text("This URL has already been added")
             else:
                 sql.add_url(tg_chat_id, tg_feed_link, tg_old_entry_link)
@@ -146,9 +128,9 @@ def remove_url(update: Update, context: CallbackContext):
         link_processed = parse(tg_feed_link)
 
         if link_processed.bozo == 0:
-            user_data = sql.check_url_availability(tg_chat_id, tg_feed_link)
-
-            if user_data:
+            if user_data := sql.check_url_availability(
+                tg_chat_id, tg_feed_link
+            ):
                 sql.remove_url(tg_chat_id, tg_feed_link)
 
                 update.effective_message.reply_text("Removed URL from subscription")
@@ -181,27 +163,20 @@ def rss_update(context: CallbackContext):
 
         # this loop checks for every entry from the RSS Feed link from the DB row
         for entry in feed_processed.entries:
-            # check if there are any new updates to the RSS Feed from the old entry
-            if entry.link != tg_old_entry_link:
-                new_entry_links.append(entry.link)
-                new_entry_titles.append(entry.title)
-            else:
+            if entry.link == tg_old_entry_link:
                 break
 
+            new_entry_links.append(entry.link)
+            new_entry_titles.append(entry.title)
         # check if there's any new entries queued from the last check
         if new_entry_links:
             sql.update_url(row_id, new_entry_links)
-        else:
-            pass
-
         if len(new_entry_links) < 5:
             # this loop sends every new update to each user from each group based on the DB entries
             for link, title in zip(
                 reversed(new_entry_links), reversed(new_entry_titles)
             ):
-                final_message = "<b>{}</b>\n\n{}".format(
-                    html.escape(title), html.escape(link)
-                )
+                final_message = f"<b>{html.escape(title)}</b>\n\n{html.escape(link)}"
 
                 if len(final_message) <= constants.MAX_MESSAGE_LENGTH:
                     bot.send_message(
@@ -219,9 +194,7 @@ def rss_update(context: CallbackContext):
             for link, title in zip(
                 reversed(new_entry_links[-5:]), reversed(new_entry_titles[-5:])
             ):
-                final_message = "<b>{}</b>\n\n{}".format(
-                    html.escape(title), html.escape(link)
-                )
+                final_message = f"<b>{html.escape(title)}</b>\n\n{html.escape(link)}"
 
                 if len(final_message) <= constants.MAX_MESSAGE_LENGTH:
                     bot.send_message(
@@ -239,9 +212,7 @@ def rss_update(context: CallbackContext):
             bot.send_message(
                 chat_id=tg_chat_id,
                 parse_mode=ParseMode.HTML,
-                text="<b>Warning: </b>{} occurrences have been left out to prevent spam".format(
-                    len(new_entry_links) - 5
-                ),
+                text=f"<b>Warning: </b>{len(new_entry_links) - 5} occurrences have been left out to prevent spam",
             )
 
 
@@ -250,7 +221,6 @@ def rss_set(context: CallbackContext):
     bot, job = context.bot, context.job
     # this loop checks for every row in the DB
     for row in user_data:
-        row_id = row.id
         tg_feed_link = row.feed_link
         tg_old_entry_link = row.old_entry_link
 
@@ -270,9 +240,8 @@ def rss_set(context: CallbackContext):
 
         # check if there's any new entries queued from the last check
         if new_entry_links:
+            row_id = row.id
             sql.update_url(row_id, new_entry_links)
-        else:
-            pass
 
 
 __help__ = """

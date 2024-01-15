@@ -45,12 +45,7 @@ def add_chat(update: Update, context: CallbackContext):
         expires = str(ses.expires)
         sql.set_ses(chat.id, ses_id, expires)
         msg.reply_text("AI successfully enabled for this chat!")
-        message = (
-            f"<b>{html.escape(chat.title)}:</b>\n"
-            f"#AI_ENABLED\n"
-            f"<b>Admin:</b> {mention_html(user.id, html.escape(user.first_name))}\n"
-        )
-        return message
+        return f"<b>{html.escape(chat.title)}:</b>\n#AI_ENABLED\n<b>Admin:</b> {mention_html(user.id, html.escape(user.first_name))}\n"
     else:
         msg.reply_text("AI is already enabled for this chat!")
         return ""
@@ -63,19 +58,13 @@ def remove_chat(update: Update, context: CallbackContext):
     msg = update.effective_message
     chat = update.effective_chat
     user = update.effective_user
-    is_chat = sql.is_chat(chat.id)
-    if not is_chat:
-        msg.reply_text("AI isn't enabled here in the first place!")
-        return ""
-    else:
+    if is_chat := sql.is_chat(chat.id):
         sql.rem_chat(chat.id)
         msg.reply_text("AI disabled successfully!")
-        message = (
-            f"<b>{html.escape(chat.title)}:</b>\n"
-            f"#AI_DISABLED\n"
-            f"<b>Admin:</b> {mention_html(user.id, html.escape(user.first_name))}\n"
-        )
-        return message
+        return f"<b>{html.escape(chat.title)}:</b>\n#AI_DISABLED\n<b>Admin:</b> {mention_html(user.id, html.escape(user.first_name))}\n"
+    else:
+        msg.reply_text("AI isn't enabled here in the first place!")
+        return ""
 
 
 def check_message(context: CallbackContext, message):
@@ -95,7 +84,6 @@ def chatbot(update: Update, context: CallbackContext):
     msg = update.effective_message
     chat_id = update.effective_chat.id
     is_chat = sql.is_chat(chat_id)
-    bot = context.bot
     if not is_chat:
         return
     if msg.text and not msg.document:
@@ -112,6 +100,7 @@ def chatbot(update: Update, context: CallbackContext):
                 sesh, exp = sql.get_ses(chat_id)
         except ValueError:
             pass
+        bot = context.bot
         try:
             bot.send_chat_action(chat_id, action="typing")
             rep = api_client.think_thought(sesh, query)
@@ -132,9 +121,7 @@ def list_chatbot_chats(update: Update, context: CallbackContext):
             x = context.bot.get_chat(int(*chat))
             name = x.title or x.first_name
             text += f"• <code>{name}</code>\n"
-        except BadRequest:
-            sql.rem_chat(*chat)
-        except Unauthorized:
+        except (BadRequest, Unauthorized):
             sql.rem_chat(*chat)
         except RetryAfter as e:
             sleep(e.retry_after)

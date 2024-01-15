@@ -17,9 +17,7 @@ class RSS(BASE):
         self.old_entry_link = old_entry_link
 
     def __repr__(self):
-        return "<RSS for chatID {} at feed_link {} with old_entry_link {}>".format(
-            self.chat_id, self.feed_link, self.old_entry_link
-        )
+        return f"<RSS for chatID {self.chat_id} at feed_link {self.feed_link} with old_entry_link {self.old_entry_link}>"
 
 
 RSS.__table__.create(checkfirst=True)

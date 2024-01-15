@@ -53,29 +53,12 @@ def error_callback(update: Update, context: CallbackContext):
         pretty_error = stringio.getvalue()
         stringio.close()
     except:
-        pretty_error = "Failed to create pretty error."    
+        pretty_error = "Failed to create pretty error."
     tb_list = traceback.format_exception(
         None, context.error, context.error.__traceback__
     )
     tb = "".join(tb_list)
-    pretty_message = (
-        "{}\n"
-        "-------------------------------------------------------------------------------\n"
-        "An exception was raised while handling an update\n"
-        "User: {}\n"
-        "Chat: {} {}\n"
-        "Callback data: {}\n"
-        "Message: {}\n\n"
-        "Full Traceback: {}"
-    ).format(
-            pretty_error,        
-        update.effective_user.id,
-        update.effective_chat.title if update.effective_chat else "",
-        update.effective_chat.id if update.effective_chat else "",
-        update.callback_query.data if update.callback_query else "None",
-        update.effective_message.text if update.effective_message else "No message",
-        tb,
-    )
+    pretty_message = f'{pretty_error}\n-------------------------------------------------------------------------------\nAn exception was raised while handling an update\nUser: {update.effective_user.id}\nChat: {update.effective_chat.title if update.effective_chat else ""} {update.effective_chat.id if update.effective_chat else ""}\nCallback data: {update.callback_query.data if update.callback_query else "None"}\nMessage: {update.effective_message.text if update.effective_message else "No message"}\n\nFull Traceback: {tb}'
     key = requests.post(
         "https://nekobin.com/api/documents", json={"content": pretty_message}
     ).json()
@@ -105,9 +88,7 @@ def error_callback(update: Update, context: CallbackContext):
 def list_errors(update: Update, context: CallbackContext):
     if update.effective_user.id not in DEV_USERS:
         return
-    e = {
-        k: v for k, v in sorted(errors.items(), key=lambda item: item[1], reverse=True)
-    }
+    e = dict(sorted(errors.items(), key=lambda item: item[1], reverse=True))
     msg = "<b>Errors List:</b>\n"
     for x in e:
         msg += f"• <code>{x}:</code> <b>{e[x]}</b> #{x.identifier}\n"
@@ -118,10 +99,10 @@ def list_errors(update: Update, context: CallbackContext):
         context.bot.send_document(
             update.effective_chat.id,
             open("errors_msg.txt", "rb"),
-            caption=f"Too many errors have occured..",
+            caption="Too many errors have occured..",
             parse_mode="html",
         )
-        return    
+        return
     update.effective_message.reply_text(msg, parse_mode="html")
 
 

@@ -71,9 +71,7 @@ def import_data(update, context):
         try:
             if data.get(str(chat.id)) is None:
                 if conn:
-                    text = "Backup comes from another chat, I can't return another chat to chat *{}*".format(
-                        chat_name
-                    )
+                    text = f"Backup comes from another chat, I can't return another chat to chat *{chat_name}*"
                 else:
                     text = "Backup comes from another chat, I can't return another chat to this chat"
                 return msg.reply_text(text, parse_mode="markdown")
@@ -112,7 +110,7 @@ def import_data(update, context):
         # NOTE: consider default permissions stuff?
         if conn:
 
-            text = "Backup fully restored on *{}*.".format(chat_name)
+            text = f"Backup fully restored on *{chat_name}*."
         else:
             text = "Backup fully restored"
         msg.reply_text(text, parse_mode="markdown")
@@ -127,19 +125,15 @@ def export_data(update, context):
     chat_id = update.effective_chat.id
     chat = update.effective_chat
     current_chat_id = update.effective_chat.id
-    conn = connected(context.bot, update, chat, user.id, need_admin=True)
-    if conn:
+    if conn := connected(context.bot, update, chat, user.id, need_admin=True):
         chat = dispatcher.bot.getChat(conn)
         chat_id = conn
-        # chat_name = dispatcher.bot.getChat(conn).title
     else:
         if update.effective_message.chat.type == "private":
             update.effective_message.reply_text("This is a group only command!")
             return ""
         chat = update.effective_chat
         chat_id = update.effective_chat.id
-        # chat_name = update.effective_message.chat.title
-
     jam = time.time()
     new_jam = jam + 10800
     checkchat = get_chat(chat_id, chat_data)
@@ -149,9 +143,7 @@ def export_data(update, context):
                 "%H:%M:%S %d/%m/%Y", time.localtime(checkchat.get("value"))
             )
             update.effective_message.reply_text(
-                "You can only backup once a day!\nYou can backup again in about `{}`".format(
-                    timeformatt
-                ),
+                f"You can only backup once a day!\nYou can backup again in about `{timeformatt}`",
                 parse_mode=ParseMode.MARKDOWN,
             )
             return
@@ -175,56 +167,36 @@ def export_data(update, context):
     for note in note_list:
         count += 1
         # getnote = sql.get_note(chat_id, note.name)
-        namacat += "{}<###splitter###>".format(note.name)
+        namacat += f"{note.name}<###splitter###>"
         if note.msgtype == 1:
             tombol = sql.get_buttons(chat_id, note.name)
             # keyb = []
             for btn in tombol:
                 countbtn += 1
                 if btn.same_line:
-                    buttonlist.append(
-                        ("{}".format(btn.name), "{}".format(btn.url), True)
-                    )
+                    buttonlist.append((f"{btn.name}", f"{btn.url}", True))
                 else:
-                    buttonlist.append(
-                        ("{}".format(btn.name), "{}".format(btn.url), False)
-                    )
-            isicat += "###button###: {}<###button###>{}<###splitter###>".format(
-                note.value, str(buttonlist)
-            )
+                    buttonlist.append((f"{btn.name}", f"{btn.url}", False))
+            isicat += f"###button###: {note.value}<###button###>{str(buttonlist)}<###splitter###>"
             buttonlist.clear()
         elif note.msgtype == 2:
-            isicat += "###sticker###:{}<###splitter###>".format(note.file)
+            isicat += f"###sticker###:{note.file}<###splitter###>"
         elif note.msgtype == 3:
-            isicat += "###file###:{}<###TYPESPLIT###>{}<###splitter###>".format(
-                note.file, note.value
-            )
+            isicat += f"###file###:{note.file}<###TYPESPLIT###>{note.value}<###splitter###>"
         elif note.msgtype == 4:
-            isicat += "###photo###:{}<###TYPESPLIT###>{}<###splitter###>".format(
-                note.file, note.value
-            )
+            isicat += f"###photo###:{note.file}<###TYPESPLIT###>{note.value}<###splitter###>"
         elif note.msgtype == 5:
-            isicat += "###audio###:{}<###TYPESPLIT###>{}<###splitter###>".format(
-                note.file, note.value
-            )
+            isicat += f"###audio###:{note.file}<###TYPESPLIT###>{note.value}<###splitter###>"
         elif note.msgtype == 6:
-            isicat += "###voice###:{}<###TYPESPLIT###>{}<###splitter###>".format(
-                note.file, note.value
-            )
+            isicat += f"###voice###:{note.file}<###TYPESPLIT###>{note.value}<###splitter###>"
         elif note.msgtype == 7:
-            isicat += "###video###:{}<###TYPESPLIT###>{}<###splitter###>".format(
-                note.file, note.value
-            )
+            isicat += f"###video###:{note.file}<###TYPESPLIT###>{note.value}<###splitter###>"
         elif note.msgtype == 8:
-            isicat += "###video_note###:{}<###TYPESPLIT###>{}<###splitter###>".format(
-                note.file, note.value
-            )
+            isicat += f"###video_note###:{note.file}<###TYPESPLIT###>{note.value}<###splitter###>"
         else:
-            isicat += "{}<###splitter###>".format(note.value)
+            isicat += f"{note.value}<###splitter###>"
     notes = {
-        "#{}".format(namacat.split("<###splitter###>")[x]): "{}".format(
-            isicat.split("<###splitter###>")[x]
-        )
+        f'#{namacat.split("<###splitter###>")[x]}': f'{isicat.split("<###splitter###>")[x]}'
         for x in range(count)
     }
     # Rules
@@ -325,8 +297,8 @@ def export_data(update, context):
         },
     }
     baccinfo = json.dumps(backup, indent=4)
-    with open("SaitamaRobot{}.backup".format(chat_id), "w") as f:
-        f.write(str(baccinfo))
+    with open(f"SaitamaRobot{chat_id}.backup", "w") as f:
+        f.write(baccinfo)
     context.bot.sendChatAction(current_chat_id, "upload_document")
     tgl = time.strftime("%H:%M:%S - %d/%m/%Y", time.localtime(time.time()))
     try:

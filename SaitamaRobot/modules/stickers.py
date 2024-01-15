@@ -60,13 +60,13 @@ def cb_sticker(update: Update, context: CallbackContext):
 
 
 def getsticker(update: Update, context: CallbackContext):
-    bot = context.bot
     msg = update.effective_message
-    chat_id = update.effective_chat.id
     if msg.reply_to_message and msg.reply_to_message.sticker:
         file_id = msg.reply_to_message.sticker.file_id
+        bot = context.bot
         new_file = bot.get_file(file_id)
         new_file.download("sticker.png")
+        chat_id = update.effective_chat.id
         bot.send_document(chat_id, document=open("sticker.png", "rb"))
         os.remove("sticker.png")
     else:
